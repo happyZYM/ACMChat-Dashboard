@@ -64,7 +64,7 @@
                 <h5 class="card-title text-warning">
                     <i class="bi bi-currency-dollar"></i> Total Cost
                 </h5>
-                <h3 class="card-text">${{ "%.4f"|format(users|sum(attribute='total_cost')) }}</h3>
+                <h3 class="card-text">${{ "%.6f"|format(users|sum(attribute='total_cost')) }}</h3>
             </div>
         </div>
     </div>
@@ -78,8 +78,7 @@
         </h5>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0">
+        <table class="table table-striped table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
                         <th scope="col">
@@ -143,16 +142,15 @@
                             <strong>{{ "{:,}".format(user.total_tokens) }}</strong>
                         </td>
                         <td>
-                            <span class="badge bg-warning text-dark">${{ user.total_cost }}</span>
+                            <span class="badge bg-warning text-dark">${{ "%.6f"|format(user.total_cost) }}</span>
                         </td>
                         <td>
-                            <small class="text-muted">${{ "%.4f"|format(user.total_cost / user.total_calls) }}</small>
+                            <small class="text-muted">${{ "%.6f"|format(user.total_cost / user.total_calls) }}</small>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
     </div>
 </div>
 
@@ -172,7 +170,7 @@
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <small class="fw-bold">{{ user.email }}</small>
-                        <small class="text-muted">${{ user.total_cost }}</small>
+                        <small class="text-muted">${{ "%.6f"|format(user.total_cost) }}</small>
                     </div>
                     <div class="progress" style="height: 20px;">
                         <div class="progress-bar bg-primary" role="progressbar" 

@@ -20,8 +20,50 @@
     <div class="col-12">
         <div class="alert alert-info">
             <i class="bi bi-info-circle"></i>
-            Showing <strong>{{ logs|length }}</strong> most recent API calls. 
+            Showing <strong>{{ logs|length }}</strong> API calls on page <strong>{{ pagination.current_page }}</strong> of <strong>{{ pagination.total_pages }}</strong>.
+            Total: <strong>{{ pagination.total_count }}</strong> records.
             Logs are ordered by timestamp (newest first).
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Summary -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-bar-chart"></i> Current Page Statistics
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-primary">{{ logs|length }}</h4>
+                            <small class="text-muted">Total Calls</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-success">{{ "{:,}".format(logs|sum(attribute='input_tokens')) }}</h4>
+                            <small class="text-muted">Input Tokens</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-info">{{ "{:,}".format(logs|sum(attribute='output_tokens')) }}</h4>
+                            <small class="text-muted">Output Tokens</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h4 class="text-warning">${{ "%.6f"|format(logs|sum(attribute='cost_usd')) }}</h4>
+                            <small class="text-muted">Total Cost</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -34,8 +76,7 @@
         </h5>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0">
+        <table class="table table-striped table-hover mb-0">
                 <thead class="table-dark">
                     <tr>
                         <th scope="col">
@@ -83,56 +124,89 @@
                             <strong>{{ "{:,}".format(log.total_tokens) }}</strong>
                         </td>
                         <td>
-                            <span class="badge bg-warning text-dark">${{ log.cost_usd }}</span>
+                            <span class="badge bg-warning text-dark">${{ "%.6f"|format(log.cost_usd) }}</span>
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
     </div>
 </div>
 
-<!-- Statistics Summary -->
-<div class="row mt-4">
+<!-- Pagination -->
+{% if pagination.total_pages > 1 %}
+<div class="row mb-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="bi bi-bar-chart"></i> Current Page Statistics
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h4 class="text-primary">{{ logs|length }}</h4>
-                            <small class="text-muted">Total Calls</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h4 class="text-success">{{ "{:,}".format(logs|sum(attribute='input_tokens')) }}</h4>
-                            <small class="text-muted">Input Tokens</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h4 class="text-info">{{ "{:,}".format(logs|sum(attribute='output_tokens')) }}</h4>
-                            <small class="text-muted">Output Tokens</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="text-center">
-                            <h4 class="text-warning">${{ "%.4f"|format(logs|sum(attribute='cost_usd')) }}</h4>
-                            <small class="text-muted">Total Cost</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <nav aria-label="Logs pagination">
+            <ul class="pagination justify-content-center">
+                <!-- Previous button -->
+                <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                    {% if pagination.has_prev %}
+                        <a class="page-link" href="?page={{ pagination.current_page - 1 }}">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </a>
+                    {% else %}
+                        <span class="page-link">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </span>
+                    {% endif %}
+                </li>
+
+                <!-- Page numbers -->
+                {% set start_page = [1, pagination.current_page - 2]|max %}
+                {% set end_page = [pagination.total_pages, pagination.current_page + 2]|min %}
+                
+                {% if start_page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">1</a>
+                    </li>
+                    {% if start_page > 2 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endif %}
+
+                {% for page_num in range(start_page, end_page + 1) %}
+                    <li class="page-item {{ 'active' if page_num == pagination.current_page }}">
+                        {% if page_num == pagination.current_page %}
+                            <span class="page-link">{{ page_num }}</span>
+                        {% else %}
+                            <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+
+                {% if end_page < pagination.total_pages %}
+                    {% if end_page < pagination.total_pages - 1 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ pagination.total_pages }}">{{ pagination.total_pages }}</a>
+                    </li>
+                {% endif %}
+
+                <!-- Next button -->
+                <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                    {% if pagination.has_next %}
+                        <a class="page-link" href="?page={{ pagination.current_page + 1 }}">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </a>
+                    {% else %}
+                        <span class="page-link">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </span>
+                    {% endif %}
+                </li>
+            </ul>
+        </nav>
     </div>
 </div>
+{% endif %}
+
+
 
 {% else %}
 <!-- No Data -->
@@ -155,9 +229,7 @@
 
 {% block scripts %}
 <script>
-    // Auto-refresh every 30 seconds
-    setInterval(() => {
-        window.location.reload();
-    }, 30000);
+    // Note: Auto-refresh disabled for pagination functionality
+    // Users can manually refresh using the refresh button
 </script>
 {% endblock %} 

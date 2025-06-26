@@ -62,7 +62,7 @@
                         <h5 class="card-title text-warning">
                             <i class="bi bi-currency-dollar"></i> Total Cost
                         </h5>
-                        <h2 class="card-text">${{ stats.total_cost }}</h2>
+                        <h2 class="card-text">${{ "%.6f"|format(stats.total_cost) }}</h2>
                         <small class="text-muted">Last 24 hours</small>
                     </div>
                     <div class="text-warning">

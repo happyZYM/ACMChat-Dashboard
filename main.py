@@ -137,18 +137,25 @@ async def get_24h_stats():
         return {
             "total_chats": total_chats,
             "total_tokens": total_tokens,
-            "total_cost": round(total_cost, 4)
+            "total_cost": round(total_cost, 6)
         }
 
-async def get_recent_logs(limit: int = 100):
-    """Get recent API call logs"""
+async def get_recent_logs(page: int = 1, page_size: int = 100):
+    """Get recent API call logs with pagination"""
+    offset = (page - 1) * page_size
+    
     async with aiosqlite.connect(database_path) as db:
+        # Get total count for pagination
+        cursor = await db.execute("SELECT COUNT(*) FROM api_calls")
+        total_count = (await cursor.fetchone())[0]
+        
+        # Get paginated results
         cursor = await db.execute("""
             SELECT timestamp, model_id, user_email, input_tokens, output_tokens, cost_usd
             FROM api_calls
             ORDER BY timestamp DESC
-            LIMIT ?
-        """, (limit,))
+            LIMIT ? OFFSET ?
+        """, (page_size, offset))
         
         logs = []
         async for row in cursor:
@@ -160,10 +167,22 @@ async def get_recent_logs(limit: int = 100):
                 "input_tokens": row[3],
                 "output_tokens": row[4],
                 "total_tokens": row[3] + row[4],
-                "cost_usd": round(row[5], 4)
+                "cost_usd": round(row[5], 6)
             })
         
-        return logs
+        total_pages = (total_count + page_size - 1) // page_size  # Ceiling division
+        
+        return {
+            "logs": logs,
+            "pagination": {
+                "current_page": page,
+                "total_pages": total_pages,
+                "total_count": total_count,
+                "page_size": page_size,
+                "has_prev": page > 1,
+                "has_next": page < total_pages
+            }
+        }
 
 async def get_users_report():
     """Get user consumption statistics"""
@@ -189,7 +208,7 @@ async def get_users_report():
                 "total_input_tokens": row[2],
                 "total_output_tokens": row[3],
                 "total_tokens": row[4],
-                "total_cost": round(row[5], 4)
+                "total_cost": round(row[5], 6)
             })
         
         return users
@@ -227,12 +246,16 @@ async def dashboard(request: Request, _: str = Depends(verify_admin_basic_auth))
     })
 
 @app.get("/dashboard/logs", response_class=HTMLResponse)
-async def dashboard_logs(request: Request, _: str = Depends(verify_admin_basic_auth)):
+async def dashboard_logs(request: Request, page: int = 1, _: str = Depends(verify_admin_basic_auth)):
     """Dashboard logs page"""
-    logs = await get_recent_logs(200)  # Get more logs for the logs page
+    if page < 1:
+        page = 1
+    
+    result = await get_recent_logs(page=page, page_size=100)
     return templates.TemplateResponse("logs.html", {
         "request": request,
-        "logs": logs
+        "logs": result["logs"],
+        "pagination": result["pagination"]
     })
 
 @app.get("/dashboard/users_report", response_class=HTMLResponse)

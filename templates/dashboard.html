@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - OpenWebUI Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.location.reload()">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 24 Hour Statistics -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100 border-primary">
+            <div class="card-body text-center">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title text-primary">
+                            <i class="bi bi-chat-dots"></i> Total Chats
+                        </h5>
+                        <h2 class="card-text">{{ stats.total_chats }}</h2>
+                        <small class="text-muted">Last 24 hours</small>
+                    </div>
+                    <div class="text-primary">
+                        <i class="bi bi-chat-dots display-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100 border-success">
+            <div class="card-body text-center">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title text-success">
+                            <i class="bi bi-cpu"></i> Total Tokens
+                        </h5>
+                        <h2 class="card-text">{{ "{:,}".format(stats.total_tokens) }}</h2>
+                        <small class="text-muted">Last 24 hours</small>
+                    </div>
+                    <div class="text-success">
+                        <i class="bi bi-cpu display-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100 border-warning">
+            <div class="card-body text-center">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title text-warning">
+                            <i class="bi bi-currency-dollar"></i> Total Cost
+                        </h5>
+                        <h2 class="card-text">${{ stats.total_cost }}</h2>
+                        <small class="text-muted">Last 24 hours</small>
+                    </div>
+                    <div class="text-warning">
+                        <i class="bi bi-currency-dollar display-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightning"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <a href="/dashboard/logs" class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-journal-text"></i> View Recent Logs
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="d-grid">
+                            <a href="/dashboard/users_report" class="btn btn-outline-success btn-lg">
+                                <i class="bi bi-people"></i> View Users Report
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Information -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-info-circle"></i> System Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Online
+                                </span>
+                            </dd>
+                            <dt class="col-sm-4">Database:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-info">SQLite</span>
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">API Version:</dt>
+                            <dd class="col-sm-8">v1.0</dd>
+                            <dt class="col-sm-4">Last Sync:</dt>
+                            <dd class="col-sm-8" id="current-time"></dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateCurrentTime() {
+        document.getElementById('current-time').textContent = new Date().toLocaleString();
+    }
+    
+    updateCurrentTime();
+    setInterval(updateCurrentTime, 1000);
+</script>
+{% endblock %} 

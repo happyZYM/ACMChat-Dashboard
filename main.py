@@ -259,7 +259,7 @@ async def dashboard_logs(request: Request, page: int = 1, _: str = Depends(verif
     })
 
 @app.get("/dashboard/users_report", response_class=HTMLResponse)
-async def dashboard_users_report(request: Request, _: str = Depends(verify_admin_basic_auth)):
+async def dashboard_users_report(request: Request):
     """Dashboard users report page"""
     users = await get_users_report()
     return templates.TemplateResponse("users_report.html", {

@@ -3,13 +3,14 @@ name = "acmchat-dashboard"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10.12"
+requires-python = ">=3.12.10"
 dependencies = [
     "aiosqlite>=0.21.0",
-    "fastapi>=0.115.13",
+    "fastapi>=0.115.14",
+    "itsdangerous>=2.2.0",
     "jinja2>=3.1.6",
     "loguru>=0.7.3",
+    "pydantic>=2.11.7",
     "python-multipart>=0.0.20",
-    "ruff>=0.12.0",
-    "uvicorn>=0.34.3",
+    "uvicorn>=0.35.0",
 ]

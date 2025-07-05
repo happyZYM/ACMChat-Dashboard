@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, HTTPBasic, HTTPBasicCredentials
+from starlette.middleware.sessions import SessionMiddleware
 import os
 from loguru import logger
 import sys
@@ -67,6 +68,7 @@ with open(config_path, "r") as f:
 
 admin_api_key = config.get("admin_api_key", "")
 report_api_key = config.get("report_api_key", "")
+session_secret_key = config.get("session_secret_key", secrets.token_hex(32))
 
 async def init_database():
     """Initialize the database and create tables if they don't exist"""
@@ -86,19 +88,14 @@ async def init_database():
         await db.commit()
         logger.info("Database initialized successfully")
 
-async def verify_admin_basic_auth(credentials: HTTPBasicCredentials = Depends(security_basic)):
-    """Verify admin credentials for dashboard access using Basic HTTP authentication"""
-    # Check username and password
-    is_correct_username = secrets.compare_digest(credentials.username, "admin")
-    is_correct_password = secrets.compare_digest(credentials.password, admin_api_key)
-    
-    if not (is_correct_username and is_correct_password):
+async def verify_admin_session(request: Request):
+    """Verify admin session for dashboard access"""
+    if not request.session.get("authenticated"):
         raise HTTPException(
-            status_code=401,
-            detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Basic"},
+            status_code=302,
+            headers={"Location": "/login"}
         )
-    return credentials.username
+    return True
 
 async def verify_report_key(credentials: HTTPAuthorizationCredentials = Depends(security_bearer)):
     """Verify report API key for API access using Bearer authentication"""
@@ -161,7 +158,6 @@ async def get_recent_logs(page: int = 1, page_size: int = 100):
         async for row in cursor:
             logs.append({
                 "timestamp": row[0],
-                "datetime": datetime.fromtimestamp(row[0]).strftime("%Y-%m-%d %H:%M:%S"),
                 "model_id": row[1],
                 "user_email": row[2],
                 "input_tokens": row[3],
@@ -227,17 +223,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Add session middleware
+app.add_middleware(SessionMiddleware, secret_key=session_secret_key)
+
 # Set up templates
 templates = Jinja2Templates(directory="templates")
 
 # Routes
 @app.get("/")
-async def root():
-    """Redirect to dashboard"""
-    return RedirectResponse(url="/dashboard", status_code=302)
+async def root(request: Request):
+    """Redirect to dashboard or login"""
+    if request.session.get("authenticated"):
+        return RedirectResponse(url="/dashboard", status_code=302)
+    else:
+        return RedirectResponse(url="/login", status_code=302)
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request, _: str = Depends(verify_admin_basic_auth)):
+async def dashboard(request: Request, _: bool = Depends(verify_admin_session)):
     """Main dashboard page"""
     stats = await get_24h_stats()
     return templates.TemplateResponse("dashboard.html", {
@@ -246,7 +248,7 @@ async def dashboard(request: Request, _: str = Depends(verify_admin_basic_auth))
     })
 
 @app.get("/dashboard/logs", response_class=HTMLResponse)
-async def dashboard_logs(request: Request, page: int = 1, _: str = Depends(verify_admin_basic_auth)):
+async def dashboard_logs(request: Request, page: int = 1, _: bool = Depends(verify_admin_session)):
     """Dashboard logs page"""
     if page < 1:
         page = 1
@@ -259,7 +261,7 @@ async def dashboard_logs(request: Request, page: int = 1, _: str = Depends(verif
     })
 
 @app.get("/dashboard/users_report", response_class=HTMLResponse)
-async def dashboard_users_report(request: Request):
+async def dashboard_users_report(request: Request, _: bool = Depends(verify_admin_session)):
     """Dashboard users report page"""
     users = await get_users_report()
     return templates.TemplateResponse("users_report.html", {
@@ -294,6 +296,29 @@ async def record_api_call(
     except Exception as e:
         logger.error(f"Error recording API call: {e}")
         raise HTTPException(status_code=500, detail="Failed to record API call")
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Login page"""
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.post("/login")
+async def login(request: Request, password: str = Form(...)):
+    """Handle login form submission"""
+    if secrets.compare_digest(password, admin_api_key):
+        request.session["authenticated"] = True
+        return RedirectResponse(url="/dashboard", status_code=302)
+    else:
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": "Invalid password"
+        })
+
+@app.get("/logout")
+async def logout(request: Request):
+    """Logout and clear session"""
+    request.session.clear()
+    return RedirectResponse(url="/login", status_code=302)
 
 if __name__ == "__main__":
     uvicorn.run(app, host=listen_host, port=int(listen_port))

@@ -106,7 +106,7 @@
                     {% for log in logs %}
                     <tr>
                         <td>
-                            <small class="text-muted">{{ log.datetime }}</small>
+                            <small class="text-muted timestamp" data-timestamp="{{ log.timestamp }}">{{ log.timestamp }}</small>
                         </td>
                         <td>
                             <span class="badge bg-secondary">{{ log.user_email }}</span>
@@ -229,6 +229,23 @@
 
 {% block scripts %}
 <script>
+    // Convert timestamps to local timezone
+    function formatTimestamp(timestamp) {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString();
+    }
+    
+    // Update all timestamps on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const timestampElements = document.querySelectorAll('.timestamp');
+        timestampElements.forEach(element => {
+            const timestamp = element.getAttribute('data-timestamp');
+            if (timestamp) {
+                element.textContent = formatTimestamp(timestamp);
+            }
+        });
+    });
+    
     // Note: Auto-refresh disabled for pagination functionality
     // Users can manually refresh using the refresh button
 </script>

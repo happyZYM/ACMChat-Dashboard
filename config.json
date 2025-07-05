@@ -1,4 +1,5 @@
 {
 	"admin_api_key": "admin_key_change_me",
-	"report_api_key": "report_key_change_me"
+	"report_api_key": "report_key_change_me",
+	"session_secret_key": "session_secret_key_change_me"
 }
